@@ -34,8 +34,39 @@ function verifyData(publicKey, data, signature) {
 let data = 'data to be signed';
 let signature = signData(keyPair.privateKey, data);
 console.log('signature:' + signature);
-console.log('verify data & signature' + verifyData(keyPair.publicKey, data, signature));
+console.log('verify data & signature: ' + verifyData(keyPair.publicKey, data, signature));
 
+// Function to encrypt data with a public key
+function encryptWithPublicKey(publicKey, data) {
+  const publicKeyBytes = Buffer.from(publicKey, 'base64');
+  const nonce = nacl.randomBytes(nacl.box.nonceLength);
+  const encryptedBytes = nacl.box(Buffer.from(data), nonce, publicKeyBytes, nacl.box.keyPair().secretKey);
+  const encryptedMessage = Buffer.concat([nonce, encryptedBytes]);
+  const encryptedData = encryptedMessage.toString('base64');
+  return encryptedData;
+}
+
+// Function to decrypt data with a private key
+function decryptWithPrivateKey(privateKey, encryptedData) {
+  const privateKeyBytes = Buffer.from(privateKey, 'base64');
+  const encryptedMessage = Buffer.from(encryptedData, 'base64');
+  const nonce = encryptedMessage.slice(0, nacl.box.nonceLength);
+  const encryptedBytes = encryptedMessage.slice(nacl.box.nonceLength);
+  const decryptedBytes = nacl.box.open(encryptedBytes, nonce, privateKeyBytes, nacl.box.keyPair().publicKey);
+  
+  if (decryptedBytes === null) {
+    throw new Error('Decryption failed');
+  }
+  
+  const decryptedData = Buffer.from(decryptedBytes).toString();
+  return decryptedData;
+}
+
+const encryptedData = encryptWithPublicKey(keyPair.publicKey, data);
+console.log('Encrypted Data:', encryptedData);
+
+const decryptedData = decryptWithPrivateKey(keyPair.privateKey, encryptedData);
+console.log('Decrypted Data:', decryptedData);
 
 
 // encrypt(pub, data) -> edata
